@@ -1,0 +1,10 @@
+# ROS2 Workspace specific ignores
+build/
+install/
+log/
+
+# Python
+__pycache__/
+
+# VSCode
+.vscode/
