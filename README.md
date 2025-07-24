@@ -48,15 +48,19 @@ pip3 install pytest-mock
 
 ### 3. Build the Workspace
 ```bash
+cd cobot_ws
 colcon build
 ```
 
 ### 4. Source the Workspace
 ```bash
+# From within the cobot_ws directory
 source install/setup.bash
 ```
 
 ## Usage
+
+**Note:** All commands below should be run from within the `cobot_ws` directory.
 
 ### Starting the Cobot System
 

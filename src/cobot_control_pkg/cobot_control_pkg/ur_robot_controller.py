@@ -164,7 +164,7 @@ class URRobotController(Node):
 
         Args:
         ----
-        target_velocities: list[float] - the target velocity values
+            target_velocities: list[float] - the target velocity values
 
         """
         target_velocities = [round(v, 3) for v in target_velocities]
