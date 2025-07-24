@@ -17,6 +17,8 @@ src/
 - Python 3.10+ (ROS2 Jazzy requirement)
 - Universal Robots UR5
 
+**Note**: This project has been tested and verified to work on Linux systems only. Windows and macOS compatibility is not guaranteed.
+
 ## Installation
 ### 1. Clone the Repository
 ```bash

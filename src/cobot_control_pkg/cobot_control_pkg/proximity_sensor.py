@@ -23,7 +23,9 @@ class ProximitySensorNode(Node):
         self.max_distance_mm = self.get_parameter("max_distance_mm").value
         self.publish_rate_hz = self.get_parameter("publish_rate_hz").value
 
-        self.add_on_set_parameters_callback(self.proximity_sensor_parameters_callback)
+        self.add_on_set_parameters_callback(
+            self.proximity_sensor_parameters_callback
+        )
 
         # Create the publisher to publish distance to proximity sensor
         # Topic: /proximity_distance
@@ -41,25 +43,35 @@ class ProximitySensorNode(Node):
             1.0 / self.publish_rate_hz, self.publish_proximity_data
         )
 
-    def proximity_sensor_parameters_callback(self, params: list[Parameter]) -> SetParametersResult:
+    def proximity_sensor_parameters_callback(
+        self, params: list[Parameter]
+    ) -> SetParametersResult:
         """Callback to handle parameter changes during runtime"""
         result = False
         for param in params:
             if param.name == "min_distance_mm":
                 if param.value >= 0 and param.value <= self.max_distance_mm:
                     self.min_distance_mm = param.value
-                    self.get_logger().info(f"Updated min_distance_mm to {param.value}")
+                    self.get_logger().info(
+                        f"Updated min_distance_mm to {param.value}"
+                    )
                     result = True
                 else:
-                    self.get_logger().error(f"Invalid min_distance_mm value: {param.value}")
+                    self.get_logger().error(
+                        f"Invalid min_distance_mm value: {param.value}"
+                    )
                     result = False
             if param.name == "max_distance_mm":
                 if param.value >= self.min_distance_mm:
                     self.max_distance_mm = param.value
-                    self.get_logger().info(f"Updated max_distance_mm to {param.value}")
+                    self.get_logger().info(
+                        f"Updated max_distance_mm to {param.value}"
+                    )
                     result = True
                 else:
-                    self.get_logger().error(f"Invalid max_distance_mm value: {param.value}")
+                    self.get_logger().error(
+                        f"Invalid max_distance_mm value: {param.value}"
+                    )
                     result = False
             if param.name == "publish_rate_hz":
                 if param.value > 0:
@@ -69,10 +81,15 @@ class ProximitySensorNode(Node):
                     self.timer = self.create_timer(
                         1.0 / self.publish_rate_hz, self.publish_proximity_data
                     )
-                    self.get_logger().info(f"Timer recreated with new rate: {self.publish_rate_hz} Hz")
+                    self.get_logger().info(
+                        f"Timer recreated with new rate: "
+                        f"{self.publish_rate_hz} Hz"
+                    )
                     result = True
                 else:
-                    self.get_logger().error(f"Invalid publish_rate_hz value: {param.value}")
+                    self.get_logger().error(
+                        f"Invalid publish_rate_hz value: {param.value}"
+                    )
                     result = False
 
         return SetParametersResult(successful=result)

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # Standard Python imports
-from dataclasses import dataclass
 from enum import Enum
 
 # ROS2 imports
@@ -8,9 +7,11 @@ import smach
 from rclpy.node import Node
 from example_interfaces.msg import String
 
+
 class SpeedStateDataKeys(Enum):
-    ESTOP = 'estop'
-    DISTANCE = 'distance'
+    ESTOP = "estop"
+    DISTANCE = "distance"
+
 
 class SpeedStateOutcomes(Enum):
     ESTOP = "emergency_stop"
@@ -29,7 +30,8 @@ class FullSpeedState(smach.State):
     """
     This state is used when the robot is moving at full speed
     """
-    def __init__(self, node: Node=None):
+
+    def __init__(self, node: Node = None):
         smach.State.__init__(self, outcomes=[SpeedStateOutcomes.DONE.value])
         self.node = node
 
@@ -48,7 +50,7 @@ class SlowSpeedState(smach.State):
     Action state that moves the robot at slow speed
     """
 
-    def __init__(self, node: Node=None):
+    def __init__(self, node: Node = None):
         smach.State.__init__(self, outcomes=[SpeedStateOutcomes.DONE.value])
         self.node = node
 
@@ -66,7 +68,8 @@ class StoppedState(smach.State):
     """
     Action state that stops the robot
     """
-    def __init__(self, node: Node=None):
+
+    def __init__(self, node: Node = None):
         smach.State.__init__(self, outcomes=[SpeedStateOutcomes.DONE.value])
         self.node = node
 
@@ -78,15 +81,17 @@ class StoppedState(smach.State):
             self.node.get_logger().info(f"Publishing speed state: {msg.data}")
             self.node.speed_state_publisher_.publish(msg)
         return SpeedStateOutcomes.DONE.value
-    
+
+
 class EmergencyStopState(smach.State):
     """
     Action state that stops the robot
     """
-    def __init__(self, node: Node=None):
+
+    def __init__(self, node: Node = None):
         smach.State.__init__(self, outcomes=[SpeedStateOutcomes.DONE.value])
         self.node = node
-    
+
     def execute(self, userdata) -> str:
         if self.node:
             # Publish the speed state
@@ -96,19 +101,26 @@ class EmergencyStopState(smach.State):
             self.node.speed_state_publisher_.publish(msg)
         return SpeedStateOutcomes.DONE.value
 
+
 class SpeedDecisionState(smach.State):
-    '''
-    Top level decision state that switches between the three speed control states.
-    '''
+    """
+    Top level decision state that switches between the three speed control
+    states.
+    """
+
     def __init__(self):
-        smach.State.__init__(self, 
+        smach.State.__init__(
+            self,
             outcomes=[
-                SpeedStateOutcomes.STOPPED.value, 
-                SpeedStateOutcomes.SLOW_SPEED.value, 
-                SpeedStateOutcomes.FULL_SPEED.value, 
-                SpeedStateOutcomes.ESTOP.value
+                SpeedStateOutcomes.STOPPED.value,
+                SpeedStateOutcomes.SLOW_SPEED.value,
+                SpeedStateOutcomes.FULL_SPEED.value,
+                SpeedStateOutcomes.ESTOP.value,
             ],
-            input_keys=[SpeedStateDataKeys.ESTOP.value, SpeedStateDataKeys.DISTANCE.value]
+            input_keys=[
+                SpeedStateDataKeys.ESTOP.value,
+                SpeedStateDataKeys.DISTANCE.value,
+            ],
         )
 
     def execute(self, userdata) -> str:

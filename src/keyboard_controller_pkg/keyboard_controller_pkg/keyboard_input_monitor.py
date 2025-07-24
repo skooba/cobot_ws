@@ -41,24 +41,33 @@ class KeyboardInputMonitorNode(Node):
         # Create the publisher for which the keyboard presses will be published
         # Topic: /keyboard_input_monitor
         # Message Type: example_interfaces/Char
-        self.publisher_ = self.create_publisher(Char, "keyboard_input_monitor", 10)
+        self.publisher_ = self.create_publisher(
+            Char, "keyboard_input_monitor", 10
+        )
         self.get_logger().info(
-            "Keyboard input monitor node initialized. Publishing on /keyboard_input_monitor."
+            "Keyboard input monitor node initialized. "
+            + "Publishing on /keyboard_input_monitor."
         )
 
-    def keyboard_parameters_callback(self, params: list[Parameter]) -> SetParametersResult:
+    def keyboard_parameters_callback(
+        self, params: list[Parameter]
+    ) -> SetParametersResult:
         """Callback to handle parameter changes during runtime"""
         result = False
         for param in params:
             if param.name == "key_timeout":
                 if param.value >= 0:
                     self.key_timeout = param.value
-                    self.get_logger().info(f"Updated key_timeout to {param.value}")
+                    self.get_logger().info(
+                        f"Updated key_timeout to {param.value}"
+                    )
                     result = True
                 else:
-                    self.get_logger().error(f"Invalid key_timeout value: {param.value}")
+                    self.get_logger().error(
+                        f"Invalid key_timeout value: {param.value}"
+                    )
                     result = False
-        
+
         return SetParametersResult(successful=result)
 
     def getKey(self) -> str:
@@ -89,7 +98,8 @@ class KeyboardInputMonitorNode(Node):
             key = self.getKey()
             if key == "\x03":  # Ctrl+C character
                 self.get_logger().info(
-                    "Ctrl+C detected from keyboard thread. Shutting down get key loop"
+                    "Ctrl+C detected from keyboard thread. "
+                    + "Shutting down get key loop"
                 )
                 self.restoreTerminalSettings()
                 break

@@ -107,25 +107,30 @@ class SpeedControlNode(Node):
                 )
 
             # Add the concurrent monitoring state to the state machine
+            speed_decision_state = TopLevelState.SPEED_DECISION.value
+            sensor_update_outcome = TopLevelOutcome.SENSOR_DATA_UPDATE.value
             smach.StateMachine.add(
                 TopLevelState.CONCURRENT_MONITORING.value,
                 monitor_concurrence,
-                transitions={
-                    TopLevelOutcome.SENSOR_DATA_UPDATE.value: 
-                    TopLevelState.SPEED_DECISION.value
-                },
+                transitions={sensor_update_outcome: speed_decision_state},
             )
 
             # Add the speed decision state which takes action then switches to
             # monitor proximity state
+            stopped_state = TopLevelState.STOPPED_STATE.value
+            slow_speed_state = TopLevelState.SLOW_SPEED_STATE.value
+            full_speed_state = TopLevelState.FULL_SPEED_STATE.value
+            emergency_stop_state = TopLevelState.EMERGENCY_STOP_STATE.value
+            concurrent_monitoring = TopLevelState.CONCURRENT_MONITORING.value
+
             smach.StateMachine.add(
                 TopLevelState.SPEED_DECISION.value,
                 SpeedDecisionState(),
                 transitions={
-                    SpeedStateOutcomes.STOPPED.value: TopLevelState.STOPPED_STATE.value,
-                    SpeedStateOutcomes.SLOW_SPEED.value: TopLevelState.SLOW_SPEED_STATE.value,
-                    SpeedStateOutcomes.FULL_SPEED.value: TopLevelState.FULL_SPEED_STATE.value,
-                    SpeedStateOutcomes.ESTOP.value: TopLevelState.EMERGENCY_STOP_STATE.value,
+                    SpeedStateOutcomes.STOPPED.value: stopped_state,
+                    SpeedStateOutcomes.SLOW_SPEED.value: slow_speed_state,
+                    SpeedStateOutcomes.FULL_SPEED.value: full_speed_state,
+                    SpeedStateOutcomes.ESTOP.value: emergency_stop_state,
                 },
             )
 
@@ -133,7 +138,7 @@ class SpeedControlNode(Node):
                 TopLevelState.STOPPED_STATE.value,
                 StoppedState(self),
                 transitions={
-                    SpeedStateOutcomes.DONE.value: TopLevelState.CONCURRENT_MONITORING.value
+                    SpeedStateOutcomes.DONE.value: concurrent_monitoring
                 },
             )
 
@@ -141,7 +146,7 @@ class SpeedControlNode(Node):
                 TopLevelState.SLOW_SPEED_STATE.value,
                 SlowSpeedState(self),
                 transitions={
-                    SpeedStateOutcomes.DONE.value: TopLevelState.CONCURRENT_MONITORING.value
+                    SpeedStateOutcomes.DONE.value: concurrent_monitoring
                 },
             )
 
@@ -149,7 +154,7 @@ class SpeedControlNode(Node):
                 TopLevelState.FULL_SPEED_STATE.value,
                 FullSpeedState(self),
                 transitions={
-                    SpeedStateOutcomes.DONE.value: TopLevelState.CONCURRENT_MONITORING.value
+                    SpeedStateOutcomes.DONE.value: concurrent_monitoring
                 },
             )
 
@@ -157,7 +162,7 @@ class SpeedControlNode(Node):
                 TopLevelState.EMERGENCY_STOP_STATE.value,
                 EmergencyStopState(self),
                 transitions={
-                    SpeedStateOutcomes.DONE.value: TopLevelState.CONCURRENT_MONITORING.value
+                    SpeedStateOutcomes.DONE.value: concurrent_monitoring
                 },
             )
 
@@ -176,14 +181,14 @@ class SpeedControlNode(Node):
         self.fsm_thread.start()
 
         self.get_logger().info(
-            f"Speed control node initialized. "
-            f"Publishing speed state to /robot_speed_state"
+            "Speed control node initialized. "
+            + "Publishing speed state to /robot_speed_state"
         )
 
     def run_state_machine(self) -> None:
         """Run the state machine in a separate thread"""
         try:
-            outcome = self.fsm.execute()
+            self.fsm.execute()
         except Exception as e:
             self.get_logger().error(f"State machine error: {e}")
 
