@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 # ROS2 imports
 import rclpy
 from rclpy.node import Node
@@ -22,7 +21,7 @@ class EmergencyStopNode(Node):
         # Message Type: example_interfaces/Bool
         self.e_stop_active = False
         self.publisher_ = self.create_publisher(
-            Bool, "emergency_stop_status", 10
+            Bool, "/emergency_stop_status", 10
         )
         self.publish_estop_data()
 
@@ -50,7 +49,9 @@ class EmergencyStopNode(Node):
         self.publish_estop_data()
 
     def publish_estop_data(self) -> None:
-        """publish the estop value to the 'emergency_stop_status' topic"""
+        """
+        publish the estop value to the 'emergency_stop_status' topic
+        """
         msg = Bool()
         msg.data = self.e_stop_active
         self.publisher_.publish(msg)

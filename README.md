@@ -38,6 +38,10 @@ sudo apt install ros-jazzy-ros2-control
 
 # Additional message interfaces (usually included with ROS2)
 sudo apt install ros-jazzy-example-interfaces
+
+# Testing dependencies
+sudo apt install python3-pytest
+pip3 install pytest-mock
 ```
 
 ### 3. Build the Workspace
@@ -89,13 +93,13 @@ ros2 run keyboard_controller_pkg keyboard_input_monitor
 #### ur_robot_controller
 Main robot controller that handles velocity commands and safety states.
 
-**Published Topics:**
+##### Published Topics:
 - `/forward_velocity_controller/commands` (std_msgs/Float64MultiArray) - Joint velocity commands for all 6 UR robot joints
 
-**Subscribed Topics:**
+##### Subscribed Topics: 
 - `/robot_speed_state` (example_interfaces/String) - Speed state commands (stopped, slow_speed, full_speed, estop)
 
-**Features:**
+##### Features:
 - Velocity-based joint control for all 6 UR robot joints
 - Speed state management (stopped, slow, full speed)
 - Emergency stop handling
@@ -104,14 +108,14 @@ Main robot controller that handles velocity commands and safety states.
 #### speed_control
 State machine that manages robot speed based on proximity and emergency stop status.
 
-**Published Topics:**
+##### Published Topics:
 - `/robot_speed_state` (example_interfaces/String) - Current speed state (stopped, slow_speed, full_speed, estop)
 
-**Subscribed Topics:**
+##### Subscribed Topics:
 - `/proximity_distance` (example_interfaces/Float32) - Distance readings from proximity sensor
 - `/emergency_stop_status` (example_interfaces/Bool) - Emergency stop status
 
-**Features:**
+##### Features:
 - Finite state machine for speed control
 - Monitors proximity sensor and emergency stop concurrently
 - Automatically adjusts robot speed based on safety conditions
@@ -119,44 +123,48 @@ State machine that manages robot speed based on proximity and emergency stop sta
 #### emergency_stop
 Handles emergency stop logic and status publishing.
 
-**Published Topics:**
+##### Published Topics:
 - `/emergency_stop_status` (example_interfaces/Bool) - Emergency stop status (true = active, false = inactive)
 
-**Subscribed Topics:**
+##### Subscribed Topics:
 - `/keyboard_input_monitor` (example_interfaces/Char) - Keyboard input for emergency stop control
 
-**Features:**
+##### Features:
 - Processes keyboard commands for emergency stop activation/reset
 - Publishes emergency stop status to other nodes
 
 #### proximity_sensor
 Simulates proximity sensor readings for safety monitoring.
 
-**Published Topics:**
+##### Published Topics:
 - `/proximity_distance` (example_interfaces/Float32) - Distance readings in millimeters
 
-**Configurable Parameters:**
+##### Configurable Parameters:
 - `min_distance_mm` (default: 100.0) - Minimum distance reading
 - `max_distance_mm` (default: 1000.0) - Maximum distance reading
 - `publish_rate_hz` (default: 0.25) - Publishing frequency
+
+**Note:** The launch file starts nodes with default parameters. Use `ros2 param set /proximity_sensor {param_name} {value}` to change parameters while the node is running.
 
 ### keyboard_controller_pkg
 
 #### keyboard_input_monitor
 Monitors keyboard input for robot control and emergency stop.
 
-**Published Topics:**
+##### Published Topics:
 - `/keyboard_input_monitor` (example_interfaces/Char) - ASCII values of pressed keys
 
-**Configurable Parameters:**
+##### Configurable Parameters:
 - `key_timeout` (default: 0.1) - Timeout for key reading
 
-**Features:**
+**Note:** The launch file starts nodes with default parameters. Use `ros2 param set /keyboard_input_monitor {param_name} {value}` to change parameters while the node is running.
+
+##### Features:
 - Non-blocking keyboard input monitoring
 - Cross-platform support (Windows and Linux)
 - Publishes ASCII values of pressed keys
 
-**Reference:**
+##### Reference:
 - This node was adapted from the [teleop_twist_keyboard](https://github.com/ros-teleop/teleop_twist_keyboard) package
 
 ## Safety Features
@@ -176,6 +184,8 @@ Monitors keyboard input for robot control and emergency stop.
 - `ramp_rate` (default: 0.5) - Maximum change in velocity of a joint per second during a ramp
 - `frequency` (default: 10)  - Number of commands sent to the cobot per second during a ramp
 
+**Note:** The launch file starts nodes with default parameters. Use `ros2 param set /ur_robot_controller {param_name} {value}` to change parameters while the node is running.
+
 - Smooth acceleration/deceleration to prevent jerky motion
 - Configurable ramp rates for different speed transitions
 - Thread-safe velocity command handling
@@ -189,3 +199,67 @@ The system is configured for Universal Robots with 6 joints:
 4. `wrist_1_joint` (index 3)
 5. `wrist_2_joint` (index 4)
 6. `wrist_3_joint` (index 5)
+
+## Testing
+
+This project includes comprehensive unit and integration tests for all ROS2 nodes to ensure reliable operation and maintainability.
+
+### Test Coverage
+
+#### cobot_control_pkg
+**Full coverage testing** has been completed for all nodes in this package:
+- `proximity_sensor`: Parameter validation, publishing rate verification, publishing distance data verification, callback testing
+- `emergency_stop`: Emergency activation/reset, keyboard input handling, state management, publishing estop data verification
+- `speed_control`: State machine logic, concurrent monitoring, emergency stop priority, thread safety
+- `speed_state_machine`: Speed decision logic, boundary conditions, individual state execution, constants validation
+- `ur_robot_controller`: Velocity control, parameter validation, emergency stop procedure, thread management, ramping functionality
+
+#### keyboard_controller_pkg
+**Basic testing** with mocked resources has been completed:
+- `keyboard_input_monitor`: Parameter validation, node initialization (I/O-dependent functionality tested via integration testing)
+
+### Running Tests
+
+#### Run All Tests
+```bash
+# Run all tests across all packages
+colcon test
+
+#### Run Tests for Specific Package
+```bash
+# Test specific package
+colcon test --packages-select <package_name>
+
+```
+#### View Test Results
+```bash
+# Review detailed test results after running tests
+colcon test-result --verbose
+
+# View results for a specific package
+colcon test-result --verbose --packages-select <package_name>
+```
+
+#### Run Individual Tests
+```bash
+# Run a specific test file
+python3 -m pytest src/<package_name>/test/<test_file_name>.py -v
+
+# Run a specific test class
+python3 -m pytest src/<package_name>/test/<test_file_name>.py::<TestClassName> -v
+
+# Run a specific test method
+python3 -m pytest src/<package_name>/test/<test_file_name>.py::<TestClassName>::<test_method_name> -v
+
+# Run tests with additional output (shows print statements)
+python3 -m pytest src/<package_name>/test/<test_file_name>.py -v -s
+```
+
+**Note:** Test dependencies are included in the system dependencies installation above.
+
+### Continuous Integration
+
+All tests are designed to run reliably in CI/CD environments without requiring:
+- Physical robot hardware
+- Real keyboard/terminal input
+- Platform-specific resources (tests work on both Linux and Windows)

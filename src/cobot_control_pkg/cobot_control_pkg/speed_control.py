@@ -88,6 +88,7 @@ class SpeedControlNode(Node):
                         topic="/proximity_distance",
                         msg_type=Float32,
                         cond_cb=self.proximity_cb,
+                        input_keys=[SpeedStateDataKeys.DISTANCE.value],
                         output_keys=[SpeedStateDataKeys.DISTANCE.value],
                     ),
                 )
@@ -100,6 +101,7 @@ class SpeedControlNode(Node):
                         topic="/emergency_stop_status",
                         msg_type=Bool,
                         cond_cb=self.estop_cb,
+                        input_keys=[SpeedStateDataKeys.ESTOP.value],
                         output_keys=[SpeedStateDataKeys.ESTOP.value],
                     ),
                 )
@@ -165,8 +167,8 @@ class SpeedControlNode(Node):
 
         # Initialize the Estop and proximity distance parameters so that the
         # cobot starts stopped
-        setattr(self.fsm.userdata, SpeedStateDataKeys.ESTOP.value, False)
-        setattr(self.fsm.userdata, SpeedStateDataKeys.DISTANCE.value, 0)
+        self.fsm.userdata[SpeedStateDataKeys.ESTOP.value] = False
+        self.fsm.userdata[SpeedStateDataKeys.DISTANCE.value] = 0
 
         # Start the state machine in a separate thread
         self.fsm_thread = threading.Thread(target=self.run_state_machine)
@@ -178,14 +180,20 @@ class SpeedControlNode(Node):
             f"Publishing speed state to /robot_speed_state"
         )
 
-    def run_state_machine(self):
+    def run_state_machine(self) -> None:
         """Run the state machine in a separate thread"""
         try:
-            self.fsm.execute()
+            outcome = self.fsm.execute()
         except Exception as e:
             self.get_logger().error(f"State machine error: {e}")
 
-    def proximity_cb(self, userdata, msg):
+    def child_term_cb(self, outcome_map) -> bool:
+        """
+        Terminate concurrent monitoring when ANY sensor updates
+        """
+        return True
+
+    def proximity_cb(self, userdata, msg) -> bool:
         """
         update the distance value then return with invalid
         """
@@ -193,19 +201,13 @@ class SpeedControlNode(Node):
         userdata.distance = msg.data
         return False
 
-    def estop_cb(self, userdata, msg):
+    def estop_cb(self, userdata, msg) -> bool:
         """
         update the estop value then return with invalid
         """
         self.get_logger().info(f"Estop status: {msg.data}")
         userdata.estop = msg.data
         return False
-
-    def child_term_cb(self, outcome_map):
-        """
-        Terminate cuncurrent monitoring when ANY sensor updates
-        """
-        return True
 
 
 def main(args=None):

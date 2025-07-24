@@ -15,6 +15,8 @@ else:
 import rclpy
 from rclpy.node import Node
 from example_interfaces.msg import Char
+from rclpy.parameter import Parameter
+from rcl_interfaces.msg import SetParametersResult
 
 
 class KeyboardInputMonitorNode(Node):
@@ -24,6 +26,8 @@ class KeyboardInputMonitorNode(Node):
         self.declare_parameter("key_timeout", 0.1)
 
         self.key_timeout = self.get_parameter("key_timeout").value
+
+        self.add_on_set_parameters_callback(self.keyboard_parameters_callback)
 
         # Load original keyboard terminal settings
         self.settings = self.saveTerminalSettings()
@@ -41,6 +45,21 @@ class KeyboardInputMonitorNode(Node):
         self.get_logger().info(
             "Keyboard input monitor node initialized. Publishing on /keyboard_input_monitor."
         )
+
+    def keyboard_parameters_callback(self, params: list[Parameter]) -> SetParametersResult:
+        """Callback to handle parameter changes during runtime"""
+        result = False
+        for param in params:
+            if param.name == "key_timeout":
+                if param.value >= 0:
+                    self.key_timeout = param.value
+                    self.get_logger().info(f"Updated key_timeout to {param.value}")
+                    result = True
+                else:
+                    self.get_logger().error(f"Invalid key_timeout value: {param.value}")
+                    result = False
+        
+        return SetParametersResult(successful=result)
 
     def getKey(self) -> str:
         """

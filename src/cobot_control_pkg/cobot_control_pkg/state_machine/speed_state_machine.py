@@ -21,7 +21,7 @@ class SpeedStateOutcomes(Enum):
 
 
 class SpeedControlVariables(Enum):
-    MIN_FULL_SPEED_DISTANCE = 800
+    MAX_SLOW_SPEED_DISTANCE = 800
     MIN_SLOW_SPEED_DISTANCE = 400
 
 
@@ -33,7 +33,7 @@ class FullSpeedState(smach.State):
         smach.State.__init__(self, outcomes=[SpeedStateOutcomes.DONE.value])
         self.node = node
 
-    def execute(self, userdata):
+    def execute(self, userdata) -> str:
         if self.node:
             # Publish the speed state
             msg = String()
@@ -52,7 +52,7 @@ class SlowSpeedState(smach.State):
         smach.State.__init__(self, outcomes=[SpeedStateOutcomes.DONE.value])
         self.node = node
 
-    def execute(self, userdata):
+    def execute(self, userdata) -> str:
         if self.node:
             # Publish the speed state
             msg = String()
@@ -70,7 +70,7 @@ class StoppedState(smach.State):
         smach.State.__init__(self, outcomes=[SpeedStateOutcomes.DONE.value])
         self.node = node
 
-    def execute(self, userdata):
+    def execute(self, userdata) -> str:
         if self.node:
             # Publish the speed state
             msg = String()
@@ -87,7 +87,7 @@ class EmergencyStopState(smach.State):
         smach.State.__init__(self, outcomes=[SpeedStateOutcomes.DONE.value])
         self.node = node
     
-    def execute(self, userdata):
+    def execute(self, userdata) -> str:
         if self.node:
             # Publish the speed state
             msg = String()
@@ -111,14 +111,14 @@ class SpeedDecisionState(smach.State):
             input_keys=[SpeedStateDataKeys.ESTOP.value, SpeedStateDataKeys.DISTANCE.value]
         )
 
-    def execute(self, userdata):
+    def execute(self, userdata) -> str:
         estop = getattr(userdata, SpeedStateDataKeys.ESTOP.value)
         distance = getattr(userdata, SpeedStateDataKeys.DISTANCE.value)
         if estop:
             return SpeedStateOutcomes.ESTOP.value
         elif distance < SpeedControlVariables.MIN_SLOW_SPEED_DISTANCE.value:
             return SpeedStateOutcomes.STOPPED.value
-        elif distance < SpeedControlVariables.MIN_FULL_SPEED_DISTANCE.value:
+        elif distance <= SpeedControlVariables.MAX_SLOW_SPEED_DISTANCE.value:
             return SpeedStateOutcomes.SLOW_SPEED.value
         else:
             return SpeedStateOutcomes.FULL_SPEED.value

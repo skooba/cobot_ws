@@ -13,9 +13,10 @@ import time
 # Ros2 imports
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
+from rcl_interfaces.msg import SetParametersResult
 from std_msgs.msg import Float64MultiArray
 from example_interfaces.msg import String
-
 
 class VelocityValues(Enum):
     SLOW_SPEED = 0.3
@@ -29,11 +30,19 @@ class URRobotController(Node):
         # Parameters for the velocity ramping
         # ramp_rate: float - the acceleration rate during ramps (per second)
         # frequency: float - the frequency that velocity updates are sent (Hz)
+        # slow_speed: float - the speed to move at when the object is close to the robot
+        # full_speed: float - the speed to move at when the object is far from the robot
         self.declare_parameter("ramp_rate", 0.5)
         self.declare_parameter("frequency", 10.0)
+        self.declare_parameter("slow_speed", 0.3)
+        self.declare_parameter("full_speed", 1.0)
 
         self.ramp_rate = self.get_parameter("ramp_rate").value
         self.frequency = self.get_parameter("frequency").value
+        self.slow_speed = self.get_parameter("slow_speed").value
+        self.full_speed = self.get_parameter("full_speed").value
+
+        self.add_on_set_parameters_callback(self.ur_robot_parameters_callback)
 
         # UR Robot joint names in order (indices 0-5 in Float64MultiArray)
         self.joint_names = [
@@ -60,14 +69,52 @@ class URRobotController(Node):
         )
 
         # Thread management for velocity commands
-        self._ramp_thread: threading.Thread = None
-        self._thread_lock: threading.Lock = threading.Lock()
-        self._stop_ramp_event: threading.Event = threading.Event()
+        self.ramp_thread: threading.Thread = None
+        self.ramp_thread_lock: threading.Lock = threading.Lock()
+        self.stop_ramp_event: threading.Event = threading.Event()
 
         # State Tracking
         self.current_speed_state = SpeedStateOutcomes.STOPPED.value
         self.estop_active = False
         self.current_velocities = [0.0] * 6
+
+    def ur_robot_parameters_callback(self, params: list[Parameter]) -> SetParametersResult:
+        """Callback to handle parameter changes during runtime"""
+        result = False
+        for param in params:
+            if param.name == "slow_speed":
+                if param.value > 0 and param.value <= self.full_speed:
+                    self.slow_speed = param.value
+                    self.get_logger().info(f"Updated slow_speed to {param.value}")
+                    result = True
+                else:
+                    self.get_logger().error(f"Invalid slow_speed value: {param.value}")
+                    result = False
+            if param.name == "full_speed":
+                if param.value >= self.slow_speed:
+                    self.full_speed = param.value
+                    self.get_logger().info(f"Updated full_speed to {param.value}")
+                    result = True
+                else:
+                    self.get_logger().error(f"Invalid full_speed value: {param.value}")
+                    result = False
+            if param.name == "ramp_rate":
+                if param.value > 0:
+                    self.ramp_rate = param.value
+                    self.get_logger().info(f"Updated ramp_rate to {param.value}")
+                    result = True
+                else:
+                    self.get_logger().error(f"Invalid ramp_rate value: {param.value}")
+                    result = False
+            if param.name == "frequency":
+                if param.value > 0:
+                    self.frequency = param.value
+                    self.get_logger().info(f"Updated frequency to {param.value}")
+                    result = True
+                else:
+                    self.get_logger().error(f"Invalid frequency value: {param.value}")
+                    result = False
+        return SetParametersResult(successful=result)
 
     def speed_state_callback(self, msg: String) -> None:
         """
@@ -90,14 +137,14 @@ class URRobotController(Node):
             if self.estop_active:
                 self.estop_active = False
             self.send_ramped_velocity_command(
-                [round(VelocityValues.SLOW_SPEED.value, 3)] * 6
+                [round(self.slow_speed, 3)] * 6
             )
         elif self.current_speed_state == SpeedStateOutcomes.FULL_SPEED.value:
             # Full speed state will only be sent if the estop is not active
             if self.estop_active:
                 self.estop_active = False
             self.send_ramped_velocity_command(
-                [round(VelocityValues.FULL_SPEED.value, 3)] * 6
+                [round(self.full_speed, 3)] * 6
             )
         elif self.current_speed_state == SpeedStateOutcomes.ESTOP.value:
             # Estop will stop the robot immediately
@@ -119,20 +166,20 @@ class URRobotController(Node):
             )
             return
 
-        with self._thread_lock:
+        with self.ramp_thread_lock:
             # Stop any existing ramp thread
-            if self._ramp_thread is not None and self._ramp_thread.is_alive():
-                self._stop_ramp_event.set()
-                self._ramp_thread.join()
+            if self.ramp_thread is not None and self.ramp_thread.is_alive():
+                self.stop_ramp_event.set()
+                self.ramp_thread.join()
 
             # Reset the stop event and start new thread
-            self._stop_ramp_event.clear()
-            self._ramp_thread = threading.Thread(
+            self.stop_ramp_event.clear()
+            self.ramp_thread = threading.Thread(
                 target=self._ramp_worker,
                 args=(target_velocities, self.ramp_rate, self.frequency),
-                daemon=True,
+                daemon=False,
             )
-            self._ramp_thread.start()
+            self.ramp_thread.start()
 
     def _ramp_worker(
         self,
@@ -143,7 +190,6 @@ class URRobotController(Node):
         """
         Worker thread for ramping velocity commands
         """
-
         dt = 1.0 / frequency  # Time step in seconds
         max_change_per_step = (
             ramp_rate * dt
@@ -169,7 +215,7 @@ class URRobotController(Node):
         # Empty list to store the next velocities
         next_velocities = [0.0] * 6
 
-        while not self._stop_ramp_event.is_set() and update_times:
+        while not self.stop_ramp_event.is_set() and update_times:
             current_time = time.time()
             if current_time >= update_times[0]:
                 # increment next velocities towards the target velocities
@@ -192,7 +238,7 @@ class URRobotController(Node):
                 # lock the thread to prevent race condition where the estop
                 # is triggered between the check for estop and the
                 # publishing of the velocity command
-                with self._thread_lock:
+                with self.ramp_thread_lock:
                     if self.estop_active:
                         return
                     self.send_immediate_velocity_command(next_velocities)
@@ -215,10 +261,10 @@ class URRobotController(Node):
         msg.data = velocities
         self.velocity_publisher_.publish(msg)
 
-    def estop_robot(self):
+    def estop_robot(self) -> None:
         """Stop all robot motion"""
         # lock the critical resource of estop_active turning true
-        with self._thread_lock:
+        with self.ramp_thread_lock:
             self.send_immediate_velocity_command([0.0] * 6)
             self.current_velocities = [0.0] * 6
             self.estop_active = True
