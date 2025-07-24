@@ -60,8 +60,6 @@ source install/setup.bash
 
 ## Usage
 
-**Note:** All commands below should be run from within the `cobot_ws` directory.
-
 ### Starting the Cobot System
 
 Launch the complete cobot system:
