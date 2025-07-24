@@ -1,37 +1,31 @@
 #!/usr/bin/env python3
 # Standard Python imports
-import unittest
 import time
+import unittest
 
-# Internal imports
+# 3rd party imports
+from cobot_control_pkg.state_machine.speed_state_machine import (
+    SpeedStateOutcomes,
+)
 from cobot_control_pkg.ur_robot_controller import (
     URRobotController,
     VelocityValues,
 )
-from cobot_control_pkg.state_machine.speed_state_machine import (
-    SpeedStateOutcomes,
-)
-
-# ROS2 imports
+from example_interfaces.msg import String
 import rclpy
 from rclpy.parameter import Parameter
 from std_msgs.msg import Float64MultiArray
-from example_interfaces.msg import String
 
 
 class TestURRobotController(unittest.TestCase):
     def setUp(self):
-        """
-        Set up ROS2 node for testing
-        """
+        """Set up ROS2 node for testing."""
         rclpy.init()
         self.node: URRobotController = URRobotController()
         self.received_velocity_commands = []
 
     def tearDown(self):
-        """
-        Clean up after each test
-        """
+        """Clean up after each test."""
         self.received_velocity_commands.clear()
         if self.node.ramp_thread and self.node.ramp_thread.is_alive():
             self.node.stop_ramp_event.set()
@@ -40,12 +34,10 @@ class TestURRobotController(unittest.TestCase):
         rclpy.shutdown()
 
     def test_node_initialization(self):
-        """
-        Test that the UR robot controller node initializes correctly
-        """
-        self.assertEqual(self.node.get_name(), "ur_robot_controller")
-        self.assertEqual(self.node.get_parameter("ramp_rate").value, 0.5)
-        self.assertEqual(self.node.get_parameter("frequency").value, 10.0)
+        """Test that the UR robot controller node initializes correctly."""
+        self.assertEqual(self.node.get_name(), 'ur_robot_controller')
+        self.assertEqual(self.node.get_parameter('ramp_rate').value, 0.5)
+        self.assertEqual(self.node.get_parameter('frequency').value, 10.0)
         self.assertIsNotNone(self.node.velocity_publisher_)
         self.assertIsNotNone(self.node.speed_state_subscriber)
         self.assertEqual(len(self.node.joint_names), 6)
@@ -57,36 +49,30 @@ class TestURRobotController(unittest.TestCase):
         self.assertEqual(self.node.current_velocities, [0.0] * 6)
 
     def test_joint_names_configuration(self):
-        """
-        Test that joint names are correctly configured for UR5
-        """
+        """Test that joint names are correctly configured for UR5."""
         expected_joints = [
-            "shoulder_pan_joint",
-            "shoulder_lift_joint",
-            "elbow_joint",
-            "wrist_1_joint",
-            "wrist_2_joint",
-            "wrist_3_joint",
+            'shoulder_pan_joint',
+            'shoulder_lift_joint',
+            'elbow_joint',
+            'wrist_1_joint',
+            'wrist_2_joint',
+            'wrist_3_joint',
         ]
         self.assertEqual(self.node.joint_names, expected_joints)
 
     def test_velocity_values_enum(self):
-        """
-        Test that velocity value constants are correct
-        """
+        """Test that velocity value constants are correct."""
         self.assertEqual(VelocityValues.SLOW_SPEED.value, 0.3)
         self.assertEqual(VelocityValues.FULL_SPEED.value, 1.0)
 
     def test_setting_custom_parameters(self):
-        """
-        Test setting custom parameters to the node during runtime
-        """
+        """Test setting custom parameters to the node during runtime."""
         result = self.node.set_parameters(
             [
-                Parameter("ramp_rate", Parameter.Type.DOUBLE, 1.0),
-                Parameter("frequency", Parameter.Type.DOUBLE, 20.0),
-                Parameter("slow_speed", Parameter.Type.DOUBLE, 0.5),
-                Parameter("full_speed", Parameter.Type.DOUBLE, 1.5),
+                Parameter('ramp_rate', Parameter.Type.DOUBLE, 1.0),
+                Parameter('frequency', Parameter.Type.DOUBLE, 20.0),
+                Parameter('slow_speed', Parameter.Type.DOUBLE, 0.5),
+                Parameter('full_speed', Parameter.Type.DOUBLE, 1.5),
             ]
         )
 
@@ -97,10 +83,10 @@ class TestURRobotController(unittest.TestCase):
         self.assertTrue(result[3].successful)
 
         # Verify the parameters were updated
-        self.assertEqual(self.node.get_parameter("ramp_rate").value, 1.0)
-        self.assertEqual(self.node.get_parameter("frequency").value, 20.0)
-        self.assertEqual(self.node.get_parameter("slow_speed").value, 0.5)
-        self.assertEqual(self.node.get_parameter("full_speed").value, 1.5)
+        self.assertEqual(self.node.get_parameter('ramp_rate').value, 1.0)
+        self.assertEqual(self.node.get_parameter('frequency').value, 20.0)
+        self.assertEqual(self.node.get_parameter('slow_speed').value, 0.5)
+        self.assertEqual(self.node.get_parameter('full_speed').value, 1.5)
 
         # Verify the instance variables were updated
         self.assertEqual(self.node.ramp_rate, 1.0)
@@ -109,40 +95,38 @@ class TestURRobotController(unittest.TestCase):
         self.assertEqual(self.node.full_speed, 1.5)
 
     def test_parameter_callback_method(self):
-        """
-        Test the ur_robot_parameters_callback method directly (unit test)
-        """
+        """Test the ur_robot_parameters_callback method directly (unit test)."""
         test_cases = [
             # Valid parameter changes
-            {"param": "ramp_rate", "value": 2.0, "should_succeed": True},
-            {"param": "frequency", "value": 15.0, "should_succeed": True},
-            {"param": "slow_speed", "value": 0.2, "should_succeed": True},
-            {"param": "full_speed", "value": 1.5, "should_succeed": True},
+            {'param': 'ramp_rate', 'value': 2.0, 'should_succeed': True},
+            {'param': 'frequency', 'value': 15.0, 'should_succeed': True},
+            {'param': 'slow_speed', 'value': 0.2, 'should_succeed': True},
+            {'param': 'full_speed', 'value': 1.5, 'should_succeed': True},
             # Invalid parameter changes
             {
-                "param": "ramp_rate",
-                "value": -1.0,
-                "should_succeed": False,
+                'param': 'ramp_rate',
+                'value': -1.0,
+                'should_succeed': False,
             },  # Invalid negative value
             {
-                "param": "frequency",
-                "value": 0.0,
-                "should_succeed": False,
+                'param': 'frequency',
+                'value': 0.0,
+                'should_succeed': False,
             },  # Invalid zero value
             {
-                "param": "slow_speed",
-                "value": -0.1,
-                "should_succeed": False,
+                'param': 'slow_speed',
+                'value': -0.1,
+                'should_succeed': False,
             },  # Invalid negative value
             {
-                "param": "slow_speed",
-                "value": 2.0,
-                "should_succeed": False,
+                'param': 'slow_speed',
+                'value': 2.0,
+                'should_succeed': False,
             },  # Invalid: greater than full_speed
         ]
 
         for case in test_cases:
-            with self.subTest(param=case["param"], value=case["value"]):
+            with self.subTest(param=case['param'], value=case['value']):
                 # Store original values
                 original_ramp_rate = self.node.ramp_rate
                 original_frequency = self.node.frequency
@@ -151,56 +135,54 @@ class TestURRobotController(unittest.TestCase):
 
                 # Call the callback method directly
                 param = Parameter(
-                    case["param"], Parameter.Type.DOUBLE, case["value"]
+                    case['param'], Parameter.Type.DOUBLE, case['value']
                 )
                 result = self.node.ur_robot_parameters_callback([param])
 
                 # Verify the result matches expectation
                 expected_result = (
-                    "succeed" if case["should_succeed"] else "fail"
+                    'succeed' if case['should_succeed'] else 'fail'
                 )
                 self.assertEqual(
                     result.successful,
-                    case["should_succeed"],
-                    f"Parameter {case['param']} with value {case['value']} "
-                    f"should {expected_result}",
+                    case['should_succeed'],
+                    f'Parameter {case["param"]} with value {case["value"]} '
+                    f'should {expected_result}',
                 )
 
-                if case["should_succeed"]:
+                if case['should_succeed']:
                     # Verify the instance variable was updated for
                     # valid parameters
-                    if case["param"] == "ramp_rate":
-                        self.assertEqual(self.node.ramp_rate, case["value"])
-                    elif case["param"] == "frequency":
-                        self.assertEqual(self.node.frequency, case["value"])
-                    elif case["param"] == "slow_speed":
-                        self.assertEqual(self.node.slow_speed, case["value"])
-                    elif case["param"] == "full_speed":
-                        self.assertEqual(self.node.full_speed, case["value"])
+                    if case['param'] == 'ramp_rate':
+                        self.assertEqual(self.node.ramp_rate, case['value'])
+                    elif case['param'] == 'frequency':
+                        self.assertEqual(self.node.frequency, case['value'])
+                    elif case['param'] == 'slow_speed':
+                        self.assertEqual(self.node.slow_speed, case['value'])
+                    elif case['param'] == 'full_speed':
+                        self.assertEqual(self.node.full_speed, case['value'])
                 else:
                     # Verify the instance variable was NOT updated for
                     #  invalid parameters
-                    if case["param"] == "ramp_rate":
+                    if case['param'] == 'ramp_rate':
                         self.assertEqual(
                             self.node.ramp_rate, original_ramp_rate
                         )
-                    elif case["param"] == "frequency":
+                    elif case['param'] == 'frequency':
                         self.assertEqual(
                             self.node.frequency, original_frequency
                         )
-                    elif case["param"] == "slow_speed":
+                    elif case['param'] == 'slow_speed':
                         self.assertEqual(
                             self.node.slow_speed, original_slow_speed
                         )
-                    elif case["param"] == "full_speed":
+                    elif case['param'] == 'full_speed':
                         self.assertEqual(
                             self.node.full_speed, original_full_speed
                         )
 
     def test_speed_state_callback_stopped(self):
-        """
-        Test speed state callback for the stopped state
-        """
+        """Test speed state callback for the stopped state."""
 
         def velocity_callback(msg):
             self.received_velocity_commands.append(msg.data)
@@ -208,7 +190,7 @@ class TestURRobotController(unittest.TestCase):
         # Create subscriber to capture velocity commands
         self.node.create_subscription(
             Float64MultiArray,
-            "forward_velocity_controller/commands",
+            'forward_velocity_controller/commands',
             velocity_callback,
             10,
         )
@@ -230,22 +212,20 @@ class TestURRobotController(unittest.TestCase):
         self.assertGreater(
             len(self.received_velocity_commands),
             0,
-            "No velocity command received",
+            'No velocity command received',
         )
         self.assertEqual(
             list(self.received_velocity_commands[-1]),
             [0.0] * 6,
-            "Should publish zero velocities for stopped state",
+            'Should publish zero velocities for stopped state',
         )
         self.assertFalse(
             self.node.estop_active,
-            "Estop should be inactive after stopped state",
+            'Estop should be inactive after stopped state',
         )
 
     def test_speed_state_callback_slow_speed(self):
-        """
-        Test speed state callback for slow speed state
-        """
+        """Test speed state callback for slow speed state."""
 
         def velocity_callback(msg):
             self.received_velocity_commands.append(msg.data)
@@ -253,7 +233,7 @@ class TestURRobotController(unittest.TestCase):
         # Create subscriber
         self.node.create_subscription(
             Float64MultiArray,
-            "forward_velocity_controller/commands",
+            'forward_velocity_controller/commands',
             velocity_callback,
             10,
         )
@@ -272,23 +252,21 @@ class TestURRobotController(unittest.TestCase):
         self.assertGreater(
             len(self.received_velocity_commands),
             0,
-            "No velocity command received",
+            'No velocity command received',
         )
         expected_velocity = [VelocityValues.SLOW_SPEED.value] * 6
         self.assertEqual(
             list(self.received_velocity_commands[-1]),
             expected_velocity,
-            "Should publish slow speed velocities",
+            'Should publish slow speed velocities',
         )
         self.assertFalse(
             self.node.estop_active,
-            "Estop should be inactive after slow speed state",
+            'Estop should be inactive after slow speed state',
         )
 
     def test_speed_state_callback_full_speed(self):
-        """
-        Test speed state callback for full speed state
-        """
+        """Test speed state callback for full speed state."""
 
         def velocity_callback(msg):
             self.received_velocity_commands.append(msg.data)
@@ -296,7 +274,7 @@ class TestURRobotController(unittest.TestCase):
         # Create subscriber
         self.node.create_subscription(
             Float64MultiArray,
-            "forward_velocity_controller/commands",
+            'forward_velocity_controller/commands',
             velocity_callback,
             10,
         )
@@ -318,23 +296,21 @@ class TestURRobotController(unittest.TestCase):
         self.assertGreater(
             len(self.received_velocity_commands),
             0,
-            "No velocity command received",
+            'No velocity command received',
         )
         expected_velocity = [VelocityValues.FULL_SPEED.value] * 6
         self.assertEqual(
             list(self.received_velocity_commands[-1]),
             expected_velocity,
-            "Should publish full speed velocities",
+            'Should publish full speed velocities',
         )
         self.assertFalse(
             self.node.estop_active,
-            "Estop should be inactive after full speed state",
+            'Estop should be inactive after full speed state',
         )
 
     def test_speed_state_callback_emergency_stop(self):
-        """
-        Test speed state callback for emergency stop state
-        """
+        """Test speed state callback for emergency stop state."""
 
         def velocity_callback(msg):
             self.received_velocity_commands.append(msg.data)
@@ -342,7 +318,7 @@ class TestURRobotController(unittest.TestCase):
         # Create subscriber
         self.node.create_subscription(
             Float64MultiArray,
-            "forward_velocity_controller/commands",
+            'forward_velocity_controller/commands',
             velocity_callback,
             10,
         )
@@ -360,26 +336,24 @@ class TestURRobotController(unittest.TestCase):
         self.assertGreater(
             len(self.received_velocity_commands),
             0,
-            "No velocity command received",
+            'No velocity command received',
         )
         self.assertEqual(
             list(self.received_velocity_commands[-1]),
             [0.0] * 6,
-            "Should publish zero velocities for estop",
+            'Should publish zero velocities for estop',
         )
         self.assertTrue(
-            self.node.estop_active, "Estop should be active after estop state"
+            self.node.estop_active, 'Estop should be active after estop state'
         )
         self.assertEqual(
             self.node.current_velocities,
             [0.0] * 6,
-            "Current velocities should be zero",
+            'Current velocities should be zero',
         )
 
     def test_send_immediate_velocity_command_valid(self):
-        """
-        Test sending immediate velocity command with valid input
-        """
+        """Test sending immediate velocity command with valid input."""
 
         def velocity_callback(msg):
             self.received_velocity_commands.append(msg.data)
@@ -387,7 +361,7 @@ class TestURRobotController(unittest.TestCase):
         # Create subscriber
         self.node.create_subscription(
             Float64MultiArray,
-            "forward_velocity_controller/commands",
+            'forward_velocity_controller/commands',
             velocity_callback,
             10,
         )
@@ -403,18 +377,16 @@ class TestURRobotController(unittest.TestCase):
         self.assertGreater(
             len(self.received_velocity_commands),
             0,
-            "No velocity command received",
+            'No velocity command received',
         )
         self.assertEqual(
             list(self.received_velocity_commands[-1]),
             test_velocities,
-            "Published velocities should match input",
+            'Published velocities should match input',
         )
 
     def test_send_immediate_velocity_command_invalid_length(self):
-        """
-        Test sending immediate velocity command with invalid length
-        """
+        """Test sending immediate velocity command with invalid length."""
 
         def velocity_callback(msg):
             self.received_velocity_commands.append(msg.data)
@@ -422,7 +394,7 @@ class TestURRobotController(unittest.TestCase):
         # Create subscriber
         self.node.create_subscription(
             Float64MultiArray,
-            "forward_velocity_controller/commands",
+            'forward_velocity_controller/commands',
             velocity_callback,
             10,
         )
@@ -438,13 +410,11 @@ class TestURRobotController(unittest.TestCase):
         self.assertEqual(
             len(self.received_velocity_commands),
             0,
-            "No velocity command should be published for invalid length",
+            'No velocity command should be published for invalid length',
         )
 
     def test_estop_robot_method(self):
-        """
-        Test the estop_robot method directly
-        """
+        """Test the estop_robot method directly."""
 
         def velocity_callback(msg):
             self.received_velocity_commands.append(msg.data)
@@ -452,7 +422,7 @@ class TestURRobotController(unittest.TestCase):
         # Create subscriber
         self.node.create_subscription(
             Float64MultiArray,
-            "forward_velocity_controller/commands",
+            'forward_velocity_controller/commands',
             velocity_callback,
             10,
         )
@@ -467,27 +437,25 @@ class TestURRobotController(unittest.TestCase):
         rclpy.spin_once(self.node, timeout_sec=0.5)
 
         # Verify estop behavior
-        self.assertTrue(self.node.estop_active, "Estop should be active")
+        self.assertTrue(self.node.estop_active, 'Estop should be active')
         self.assertEqual(
             self.node.current_velocities,
             [0.0] * 6,
-            "Current velocities should be zero",
+            'Current velocities should be zero',
         )
         self.assertGreater(
             len(self.received_velocity_commands),
             0,
-            "Should publish a zero velocity command",
+            'Should publish a zero velocity command',
         )
         self.assertEqual(
             list(self.received_velocity_commands[-1]),
             [0.0] * 6,
-            "Should publish zero velocities",
+            'Should publish zero velocities',
         )
 
     def test_velocity_ramping_basic(self):
-        """
-        Test basic velocity ramping functionality
-        """
+        """Test basic velocity ramping functionality."""
 
         def velocity_callback(msg):
             self.received_velocity_commands.append(msg.data)
@@ -495,7 +463,7 @@ class TestURRobotController(unittest.TestCase):
         # Create subscriber
         self.node.create_subscription(
             Float64MultiArray,
-            "forward_velocity_controller/commands",
+            'forward_velocity_controller/commands',
             velocity_callback,
             10,
         )
@@ -513,7 +481,7 @@ class TestURRobotController(unittest.TestCase):
         self.assertGreater(
             len(self.received_velocity_commands),
             1,
-            "Should receive multiple velocity commands during ramping",
+            'Should receive multiple velocity commands during ramping',
         )
 
         # Final velocity should be close to target
@@ -524,13 +492,11 @@ class TestURRobotController(unittest.TestCase):
                     vel,
                     target_velocities[i],
                     places=1,
-                    msg=f"Final velocity joint {i} should reach target",
+                    msg=f'Final velocity joint {i} should reach target',
                 )
 
     def test_velocity_ramping_thread_safety(self):
-        """
-        Test that velocity ramping is thread-safe
-        """
+        """Test that velocity ramping is thread-safe."""
         # Start multiple ramping commands
         target1 = [0.2] * 6
         target2 = [0.5] * 6
@@ -550,13 +516,11 @@ class TestURRobotController(unittest.TestCase):
                 vel,
                 target2[i],
                 places=1,
-                msg=f"Final velocity joint {i} should reach second target",
+                msg=f'Final velocity joint {i} should reach second target',
             )
 
     def test_speed_state_transitions_sequence(self):
-        """
-        Test sequence of speed state transitions
-        """
+        """Test sequence of speed state transitions."""
 
         def velocity_callback(msg):
             self.received_velocity_commands.append(msg.data)
@@ -564,7 +528,7 @@ class TestURRobotController(unittest.TestCase):
         # Create subscriber
         self.node.create_subscription(
             Float64MultiArray,
-            "forward_velocity_controller/commands",
+            'forward_velocity_controller/commands',
             velocity_callback,
             10,
         )
@@ -600,14 +564,14 @@ class TestURRobotController(unittest.TestCase):
                 self.assertGreater(
                     len(self.received_velocity_commands),
                     0,
-                    f"No velocity command received for state {state}",
+                    f'No velocity command received for state {state}',
                 )
 
                 # Verify correct estop state
                 if state == SpeedStateOutcomes.ESTOP.value:
                     self.assertTrue(
                         self.node.estop_active,
-                        f"Estop should be active for {state}",
+                        f'Estop should be active for {state}',
                     )
                 elif state in [
                     SpeedStateOutcomes.STOPPED.value,
@@ -616,16 +580,14 @@ class TestURRobotController(unittest.TestCase):
                 ]:
                     self.assertFalse(
                         self.node.estop_active,
-                        f"Estop should be inactive for {state}",
+                        f'Estop should be inactive for {state}',
                     )
 
                 # Small delay between states
                 rclpy.spin_once(self.node, timeout_sec=0.2)
 
     def test_current_speed_state_tracking(self):
-        """
-        Test that current speed state is correctly tracked
-        """
+        """Test that current speed state is correctly tracked."""
         # Test different states
         test_states = [
             SpeedStateOutcomes.SLOW_SPEED.value,
@@ -644,16 +606,14 @@ class TestURRobotController(unittest.TestCase):
                 self.assertEqual(
                     self.node.current_speed_state,
                     state,
-                    f"Current speed state should be {state}",
+                    f'Current speed state should be {state}',
                 )
 
                 # Small delay between state transitions
                 rclpy.spin_once(self.node, timeout_sec=0.2)
 
     def test_thread_management(self):
-        """
-        Test that ramping threads are properly managed
-        """
+        """Test that ramping threads are properly managed."""
         # Initially no ramp thread
         self.assertIsNone(self.node.ramp_thread)
 
@@ -672,9 +632,9 @@ class TestURRobotController(unittest.TestCase):
         # Should have a new thread
         self.assertIsNotNone(self.node.ramp_thread)
         self.assertNotEqual(
-            old_thread, self.node.ramp_thread, "Should create new thread"
+            old_thread, self.node.ramp_thread, 'Should create new thread'
         )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

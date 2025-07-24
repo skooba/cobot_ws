@@ -1,63 +1,52 @@
 #!/usr/bin/env python3
 # Standard Python imports
-import unittest
 import time
+import unittest
 
-# Internal imports
+# 3rd party imports
 from cobot_control_pkg.proximity_sensor import ProximitySensorNode
-
-# ROS2 imports
+from example_interfaces.msg import Float32
 import rclpy
 from rclpy.parameter import Parameter
-from example_interfaces.msg import Float32
 
 
 class TestProximitySensor(unittest.TestCase):
     def setUp(self):
-        """
-        Set up ROS2 node for testing
-        """
+        """Set up ROS2 node for testing."""
         rclpy.init()
         self.node: ProximitySensorNode = ProximitySensorNode()
         self.received_messages = []
 
     def tearDown(self):
-        """
-        Clean up after each test
-        """
+        """Clean up after each test."""
         self.received_messages.clear()
         self.node.destroy_node()
         rclpy.shutdown()
 
     def test_node_initialization(self):
-        """
-        Test that the node is initialized correctly
-        """
-        self.assertEqual(self.node.get_name(), "proximity_sensor")
+        """Test that the node is initialized correctly."""
+        self.assertEqual(self.node.get_name(), 'proximity_sensor')
         self.assertEqual(
-            self.node.get_parameter("min_distance_mm").value, 100.0
+            self.node.get_parameter('min_distance_mm').value, 100.0
         )
         self.assertEqual(
-            self.node.get_parameter("max_distance_mm").value, 1000.0
+            self.node.get_parameter('max_distance_mm').value, 1000.0
         )
         self.assertEqual(
-            self.node.get_parameter("publish_rate_hz").value, 0.25
+            self.node.get_parameter('publish_rate_hz').value, 0.25
         )
         self.assertIsNotNone(
-            self.node.publisher_, "Publisher should be created"
+            self.node.publisher_, 'Publisher should be created'
         )
-        self.assertIsNotNone(self.node.timer, "Timer should be created")
+        self.assertIsNotNone(self.node.timer, 'Timer should be created')
 
     def test_setting_custom_parameters(self):
-        """
-        Test setting custom parameters to the node during runtime
-        """
-
+        """Test setting custom parameters to the node during runtime."""
         result = self.node.set_parameters(
             [
-                Parameter("min_distance_mm", Parameter.Type.DOUBLE, 50.0),
-                Parameter("max_distance_mm", Parameter.Type.DOUBLE, 1200.0),
-                Parameter("publish_rate_hz", Parameter.Type.DOUBLE, 1.0),
+                Parameter('min_distance_mm', Parameter.Type.DOUBLE, 50.0),
+                Parameter('max_distance_mm', Parameter.Type.DOUBLE, 1200.0),
+                Parameter('publish_rate_hz', Parameter.Type.DOUBLE, 1.0),
             ]
         )
 
@@ -68,12 +57,12 @@ class TestProximitySensor(unittest.TestCase):
 
         # Verify the parameters were updated
         self.assertEqual(
-            self.node.get_parameter("min_distance_mm").value, 50.0
+            self.node.get_parameter('min_distance_mm').value, 50.0
         )
         self.assertEqual(
-            self.node.get_parameter("max_distance_mm").value, 1200.0
+            self.node.get_parameter('max_distance_mm').value, 1200.0
         )
-        self.assertEqual(self.node.get_parameter("publish_rate_hz").value, 1.0)
+        self.assertEqual(self.node.get_parameter('publish_rate_hz').value, 1.0)
 
         # Verify the instance variables were updated
         self.assertEqual(self.node.min_distance_mm, 50.0)
@@ -81,16 +70,13 @@ class TestProximitySensor(unittest.TestCase):
         self.assertEqual(self.node.publish_rate_hz, 1.0)
 
     def test_publish_proximity_data(self):
-        """
-        Test that proximity sensor publishes valid distance readings
-        """
-
+        """Verify that proximity sensor publishes valid distance readings."""
         # Increase publish rate to get many messages fast
         nominal_frequency = 10.0
         self.node.set_parameters(
             [
                 Parameter(
-                    "publish_rate_hz", Parameter.Type.DOUBLE, nominal_frequency
+                    'publish_rate_hz', Parameter.Type.DOUBLE, nominal_frequency
                 )
             ]
         )
@@ -101,13 +87,13 @@ class TestProximitySensor(unittest.TestCase):
         message_timestamps = []
 
         def proximity_callback(msg):
-            """Callback to capture published messages"""
+            """Capture published messages."""
             message_timestamps.append(time.time())
             self.received_messages.append(msg.data)
 
-        # Create subscriper to the "/proximity_distance" topic
+        # Create subscriper to the '/proximity_distance' topic
         self.node.create_subscription(
-            Float32, "/proximity_distance", proximity_callback, 10
+            Float32, '/proximity_distance', proximity_callback, 10
         )
 
         # Spin node until enough messages are received or timeout occurs
@@ -124,8 +110,8 @@ class TestProximitySensor(unittest.TestCase):
         self.assertGreaterEqual(
             num_messages,
             min_expected_messages,
-            f"Expected a minimum of {min_expected_messages} but received "
-            f"{num_messages}",
+            f'Expected a minimum of {min_expected_messages} but received '
+            f'{num_messages}',
         )
 
         # Calculate the frequency that the messages were being received at
@@ -142,16 +128,13 @@ class TestProximitySensor(unittest.TestCase):
             self.assertLessEqual(distance, self.node.max_distance_mm)
 
     def test_publish_proximity_data_method(self):
-        """
-        Test the publish_proximity_data method directly (unit test)
-        """
-
+        """Test the publish_proximity_data method directly (unit test)."""
         def direct_callback(msg):
             self.received_messages.append(msg.data)
 
         # Create subscriber
         self.node.create_subscription(
-            Float32, "/proximity_distance", direct_callback, 10
+            Float32, '/proximity_distance', direct_callback, 10
         )
 
         # Call the method directly
@@ -172,38 +155,35 @@ class TestProximitySensor(unittest.TestCase):
         self.assertEqual(len(self.received_messages), 6)
 
     def test_parameter_callback_method(self):
-        """
-        Test the parameter_callback method directly (unit test)
-        """
-
+        """Test the parameter_callback method directly (unit test)."""
         test_cases = [
             # Valid parameter changes
             {
-                "param": "min_distance_mm",
-                "value": 50.0,
-                "should_succeed": True,
+                'param': 'min_distance_mm',
+                'value': 50.0,
+                'should_succeed': True,
             },
             {
-                "param": "max_distance_mm",
-                "value": 2000.0,
-                "should_succeed": True,
+                'param': 'max_distance_mm',
+                'value': 2000.0,
+                'should_succeed': True,
             },
-            {"param": "publish_rate_hz", "value": 1.0, "should_succeed": True},
+            {'param': 'publish_rate_hz', 'value': 1.0, 'should_succeed': True},
             # Invalid parameter changes
             {
-                "param": "min_distance_mm",
-                "value": -1.0,
-                "should_succeed": False,
+                'param': 'min_distance_mm',
+                'value': -1.0,
+                'should_succeed': False,
             },  # Invalid negative value
             {
-                "param": "max_distance_mm",
-                "value": 1.0,
-                "should_succeed": False,
+                'param': 'max_distance_mm',
+                'value': 1.0,
+                'should_succeed': False,
             },  # Invalid: less than than min_distance_mm
             {
-                "param": "publish_rate_hz",
-                "value": 0.0,
-                "should_succeed": False,
+                'param': 'publish_rate_hz',
+                'value': 0.0,
+                'should_succeed': False,
             },  # Invalid zero value
         ]
 
@@ -216,7 +196,7 @@ class TestProximitySensor(unittest.TestCase):
 
                 # Call the callback method directly
                 param = Parameter(
-                    case["param"], Parameter.Type.DOUBLE, case["value"]
+                    case['param'], Parameter.Type.DOUBLE, case['value']
                 )
                 result = self.node.proximity_sensor_parameters_callback(
                     [param]
@@ -224,44 +204,44 @@ class TestProximitySensor(unittest.TestCase):
 
                 # Verify the result matches expectation
                 expected_result = (
-                    "succeed" if case["should_succeed"] else "fail"
+                    'succeed' if case['should_succeed'] else 'fail'
                 )
                 self.assertEqual(
                     result.successful,
-                    case["should_succeed"],
-                    f"Parameter {case['param']} with value {case['value']} "
-                    f"should {expected_result}",
+                    case['should_succeed'],
+                    f'Parameter {case["param"]} with value {case["value"]} '
+                    f'should {expected_result}',
                 )
 
-                if case["should_succeed"]:
+                if case['should_succeed']:
                     # Verify the parameter was updated
-                    if case["param"] == "min_distance_mm":
+                    if case['param'] == 'min_distance_mm':
                         self.assertEqual(
-                            self.node.min_distance_mm, case["value"]
+                            self.node.min_distance_mm, case['value']
                         )
-                    elif case["param"] == "max_distance_mm":
+                    elif case['param'] == 'max_distance_mm':
                         self.assertEqual(
-                            self.node.max_distance_mm, case["value"]
+                            self.node.max_distance_mm, case['value']
                         )
-                    elif case["param"] == "publish_rate_hz":
+                    elif case['param'] == 'publish_rate_hz':
                         self.assertEqual(
-                            self.node.publish_rate_hz, case["value"]
+                            self.node.publish_rate_hz, case['value']
                         )
                 else:
                     # Verify the parameter was NOT updated for (invalid)
-                    if case["param"] == "min_distance_mm":
+                    if case['param'] == 'min_distance_mm':
                         self.assertEqual(
                             self.node.min_distance_mm, original_min_distance_mm
                         )
-                    elif case["param"] == "max_distance_mm":
+                    elif case['param'] == 'max_distance_mm':
                         self.assertEqual(
                             self.node.max_distance_mm, original_max_distance_mm
                         )
-                    elif case["param"] == "publish_rate_hz":
+                    elif case['param'] == 'publish_rate_hz':
                         self.assertEqual(
                             self.node.publish_rate_hz, original_publish_rate_hz
                         )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

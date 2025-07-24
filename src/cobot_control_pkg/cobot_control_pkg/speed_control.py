@@ -1,56 +1,62 @@
 #!/usr/bin/env python3
-# internal imports
+"""Speed control node using SMACH state machine for robot control."""
+# Python imports
+from enum import Enum
+import threading
+
+# 3rd party imports
 from cobot_control_pkg.state_machine.speed_state_machine import (
-    SpeedDecisionState,
-    SpeedStateOutcomes,
-    StoppedState,
+    EmergencyStopState,
     FullSpeedState,
     SlowSpeedState,
+    SpeedDecisionState,
     SpeedStateDataKeys,
-    EmergencyStopState,
+    SpeedStateOutcomes,
+    StoppedState,
 )
-
-# Python imports
-import threading
-from enum import Enum
-
-# ROS2 imports
+from example_interfaces.msg import Bool, Float32, String
 import rclpy
 from rclpy.node import Node
 import smach
 import smach_ros
-from example_interfaces.msg import Float32, Bool, String
 
 
 class TopLevelOutcome(Enum):
-    ABORTED = "aborted"
-    SENSOR_DATA_UPDATE = "sensor_data_update"
+    """Possible outcomes for the top-level state machine."""
+
+    ABORTED = 'aborted'
+    SENSOR_DATA_UPDATE = 'sensor_data_update'
 
 
 class TopLevelState(Enum):
-    MONITOR_PROXIMITY = "monitor_prox"
-    MONITOR_ESTOP = "monitor_estop"
-    CONCURRENT_MONITORING = "conc_monitor"
-    STOPPED_STATE = "stopped_state"
-    SLOW_SPEED_STATE = "slow_speed_state"
-    FULL_SPEED_STATE = "full_speed_state"
-    EMERGENCY_STOP_STATE = "emergency_stop_state"
-    SPEED_DECISION = "speed_decision"
+    """State names for the top-level state machine."""
+
+    MONITOR_PROXIMITY = 'monitor_prox'
+    MONITOR_ESTOP = 'monitor_estop'
+    CONCURRENT_MONITORING = 'conc_monitor'
+    STOPPED_STATE = 'stopped_state'
+    SLOW_SPEED_STATE = 'slow_speed_state'
+    FULL_SPEED_STATE = 'full_speed_state'
+    EMERGENCY_STOP_STATE = 'emergency_stop_state'
+    SPEED_DECISION = 'speed_decision'
 
 
 class SpeedControlNode(Node):
+    """ROS2 node that controls robot speed using a SMACH state machine."""
+
     def __init__(self):
-        super().__init__("speed_controller")
+        """Initialize the speed control node with state machine."""
+        super().__init__('speed_controller')
 
         # Suppress SMACH logging
-        smach_logger = rclpy.logging.get_logger("smach_ros")
+        smach_logger = rclpy.logging.get_logger('smach_ros')
         smach_logger.set_level(rclpy.logging.LoggingSeverity.WARN)
 
         # Create publisher for speed state messages
         # Topic: /robot_speed_state
         # Message Type: example_interfaces/String
         self.speed_state_publisher_ = self.create_publisher(
-            String, "/robot_speed_state", 10
+            String, '/robot_speed_state', 10
         )
 
         # Create a fsm with a dummy outcome since we will never exit the fsm
@@ -85,7 +91,7 @@ class SpeedControlNode(Node):
                     TopLevelState.MONITOR_PROXIMITY.value,
                     smach_ros.MonitorState(
                         self,
-                        topic="/proximity_distance",
+                        topic='/proximity_distance',
                         msg_type=Float32,
                         cond_cb=self.proximity_cb,
                         input_keys=[SpeedStateDataKeys.DISTANCE.value],
@@ -98,7 +104,7 @@ class SpeedControlNode(Node):
                     TopLevelState.MONITOR_ESTOP.value,
                     smach_ros.MonitorState(
                         self,
-                        topic="/emergency_stop_status",
+                        topic='/emergency_stop_status',
                         msg_type=Bool,
                         cond_cb=self.estop_cb,
                         input_keys=[SpeedStateDataKeys.ESTOP.value],
@@ -181,46 +187,41 @@ class SpeedControlNode(Node):
         self.fsm_thread.start()
 
         self.get_logger().info(
-            "Speed control node initialized. "
-            + "Publishing speed state to /robot_speed_state"
+            'Speed control node initialized. '
+            + 'Publishing speed state to /robot_speed_state'
         )
 
     def run_state_machine(self) -> None:
-        """Run the state machine in a separate thread"""
+        """Run the state machine in a separate thread."""
         try:
             self.fsm.execute()
         except Exception as e:
-            self.get_logger().error(f"State machine error: {e}")
+            self.get_logger().error(f'State machine error: {e}')
 
     def child_term_cb(self, outcome_map) -> bool:
-        """
-        Terminate concurrent monitoring when ANY sensor updates
-        """
+        """Terminate concurrent monitoring when ANY sensor updates."""
         return True
 
     def proximity_cb(self, userdata, msg) -> bool:
-        """
-        update the distance value then return with invalid
-        """
-        self.get_logger().info(f"Proximity distance: {msg.data}")
+        """Update the distance value then return with invalid."""
+        self.get_logger().info(f'Proximity distance: {msg.data}')
         userdata.distance = msg.data
         return False
 
     def estop_cb(self, userdata, msg) -> bool:
-        """
-        update the estop value then return with invalid
-        """
-        self.get_logger().info(f"Estop status: {msg.data}")
+        """Update the estop value then return with invalid."""
+        self.get_logger().info(f'Estop status: {msg.data}')
         userdata.estop = msg.data
         return False
 
 
 def main(args=None):
+    """Run the speed control node."""
     rclpy.init(args=args)
     node = SpeedControlNode()
     rclpy.spin(node)
     rclpy.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

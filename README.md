@@ -62,7 +62,7 @@ source install/setup.bash
 
 Launch the complete cobot system:
 ```bash
-ros2 launch cobot_bringup cobot_bringup.launch.py
+ros2 launch cobot_bringup cobot_control_viz.launch.py
 ```
 
 **Launch Sequence and Timing:**
@@ -78,7 +78,7 @@ After running the launch command, the system follows this sequence:
 
 ### Emergency Stop Control
 
-To control the emergency stop functionality:
+To control the emergency stop functionality, open a new terminal from the complete cobot system:
 ```bash
 ros2 run keyboard_controller_pkg keyboard_input_monitor
 ```
@@ -265,3 +265,16 @@ All tests are designed to run reliably in CI/CD environments without requiring:
 - Physical robot hardware
 - Real keyboard/terminal input
 - Platform-specific resources (tests work on both Linux and Windows)
+
+## Development Notes
+
+This project was primarily developed independently, with **Cursor AI** providing assistance for:
+- Code style and formatting standardization (flake8/PEP257 compliance)
+- Comprehensive unit test development and validation
+- Documentation review and technical writing support
+
+All core functionality, system architecture, ROS2 integration, and robotics logic were designed and implemented independently.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
