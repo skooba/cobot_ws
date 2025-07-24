@@ -23,7 +23,7 @@ src/
 ### 1. Clone the Repository
 ```bash
 cd ~
-git clone <your-repo-url> cobot_ws
+git clone https://github.com/skooba/cobot_ws cobot_ws
 ```
 
 ### 2. Install System Dependencies
