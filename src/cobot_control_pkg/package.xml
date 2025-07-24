@@ -3,9 +3,9 @@
 <package format="3">
   <name>cobot_control_pkg</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Main robot control logic</description>
   <maintainer email="jarlaufer@gmail.com">jacob</maintainer>
-  <license>TODO: License declaration</license>
+  <license>MIT</license>
 
   <depend>rclpy</depend>
   <depend>example_interfaces</depend>
